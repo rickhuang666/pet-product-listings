@@ -4,7 +4,7 @@ import time
 from datetime import date
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+
 
 
 
@@ -89,12 +89,14 @@ for test_url in all_url:
                 auto_ship = ' '.join(auto_ship.text[:p1].split())
                 regular_price = ' '.join(price.text.split())
                 rating = rating.picture.img['src'][-7:-4].replace('_', '.')
+                # Write for loop values to price_data list.
                 price_data.append((date,brand,product,chewy_id,auto_ship,regular_price,rating))
-
+        # Close Selenium when all pages with buttons are looped through.
         driver.quit()
-
+# Convert to Panda DF from price_data list
 chewy = pd.DataFrame(price_data, columns=['date','brand','products','id','auto_ship','regular_price','rating'])
 
+# Export to CSV
 chewy.to_csv(r'C:\Users\rhuang\Desktop\chewy_price.csv', index=False, header=True)
 
 
