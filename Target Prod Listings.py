@@ -13,6 +13,7 @@ headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko
 start_url = 'https://www.target.com/b/old-mother-hubbard/-/N-1bq97'
 show_more = '//*[@id="tabContent-tab-Details"]/div/button'
 
+
 all_page = []
 price_data = []
 date = date.today().strftime('%m/%d/%Y')
@@ -61,13 +62,17 @@ for listing in all_listing[:1]:
 # Create a new list to hold true product URLs, it starts with /p/
 product_link = ['https://www.target.com' + i for i in product_link if i.startswith('/p/')]
 
-for link in product_link[3:4]:
+# print('{:<15}{:<30}{:<100}{:<15}{:<15}{:<10}'.format('date', 'brand', 'product', 'upc', 'price', 'rating'))
+
+for link in product_link:
     driver3 = webdriver.Chrome(executable_path=r'C:\Users\rhuang\Downloads\chromedriver')
     driver3.get(link)
     time.sleep(2)
+    driver3.maximize_window()
     driver3.find_element_by_xpath(show_more).click()
-    page_source = driver3.page_source
     time.sleep(3)
+    page_source = driver3.page_source
+    time.sleep(1)
     soup = BeautifulSoup(page_source, 'html.parser')
     time.sleep(1)
     # Check if a product has variation selection button
@@ -75,7 +80,10 @@ for link in product_link[3:4]:
     for btn in soup.findAll('div', attrs={'class':'VariationButton__StyledButtonWrapper-sc-1hf3dzx-0 gEeRZG'}):
         btn_cnt.append(str(btn))
     btn_list = list(range(len(btn_cnt)+1))[1:]
+
     if len(btn_cnt) == 0:
+        # driver3.find_element_by_xpath(show_more).click()
+        time.sleep(1)
         for brand, p_name, UPC, price, rating in zip(soup.findAll('div', attrs={'class': 'styles__ProductDetailsTitleRelatedLinks-h3ukx9-0'}),
                                                      soup.findAll('h1', attrs={'class': 'Heading__StyledHeading-sc-1m9kw5a-0'}),
                                                      soup.findAll('div', attrs={'class': 'Col-favj32-0 hezhbt h-padding-h-default'}),
@@ -83,19 +91,41 @@ for link in product_link[3:4]:
                                                      soup.findAll('div', attrs={'class': 'RatingSummary__StyledRating-bxhycp-0'})
                                                      ):
             brand = list(brand.text.split('Shop all '))[-1]
-            product = p_name.text
+            product = p_name.text.replace(brand + ' ','')
             temp_id = UPC.text.split('UPC: ')[1]
             id = temp_id.split('Item')[0]
-            package = ' '.join(product.split()[product.split().index('-') + 1:])
             price = price.text
             rating = rating.text
-            price_data.append((date, brand, product, package, id, price, rating))
+            price_data.append((date, brand, product, id, price, rating))
+            # print('{:<15}{:<30}{:<100}{:<15}{:<15}{:<10}'.format(date, brand, product, id, price, rating))
+
     else:
-        print('hahaha')
+        time.sleep(5)
+        for b in btn_list:
+            variation = '//*[@id="viewport"]/div[5]/div/div[2]/div[2]/div[3]/div/div[2]/div[' + str(b) + ']/button'
+            driver3.find_element_by_xpath(variation).click()
+            page_source = driver3.page_source
+            time.sleep(2)
+            soup = BeautifulSoup(page_source, 'html.parser')
+            time.sleep(1)
+            for brand, p_name, UPC, price, rating in zip(soup.findAll('div', attrs={'class': 'styles__ProductDetailsTitleRelatedLinks-h3ukx9-0'}),
+                                                         soup.findAll('h1', attrs={'class': 'Heading__StyledHeading-sc-1m9kw5a-0'}),
+                                                         soup.findAll('div', attrs={'class': 'Col-favj32-0 hezhbt h-padding-h-default'}),
+                                                         soup.findAll('div', attrs={'class': 'style__PriceFontSize-gob4i1-0'}),
+                                                         soup.findAll('div', attrs={'class': 'RatingSummary__StyledRating-bxhycp-0'})
+                                                         ):
+                brand = list(brand.text.split('Shop all '))[-1]
+                product = p_name.text.replace(brand + ' ', '')
+                temp_id = UPC.text.split('UPC: ')[1]
+                id = temp_id.split('Item')[0]
+                price = price.text
+                rating = rating.text
+                price_data.append((date, brand, product, id, price, rating))
+                # print('{:<15}{:<30}{:<100}{:<15}{:<15}{:<10}'.format(date, brand, product, id, price, rating))
 
     driver3.quit()
 
-target = pd.DataFrame(price_data, columns=['date','brand','products','package', 'upc','price','rating'])
+target = pd.DataFrame(price_data, columns=['date','brand','product', 'upc','price','rating'])
 
 target.to_csv(r'C:\Users\rhuang\Desktop\target_price.csv', index=False, header=True)
 
