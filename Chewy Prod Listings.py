@@ -5,9 +5,6 @@ from datetime import date
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-
-
-
 # Getting all Chewy links with WellPet products.
 headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0'}
 # WellPet landing page on Chewy.com.
@@ -43,26 +40,18 @@ for test_url in all_url:
     # If a page has no size variation button, then go with soup directly without opening browser by Selenium.
     if len(btn_count) == 0:
         soup = BeautifulSoup(requests.get(test_url, headers=headers).content, 'html.parser')
-        for brand, product, id, package, auto_ship, price, rating in zip(soup.findAll('span', attrs={'itemprop': 'brand'}),
-                                                                         soup.findAll('div', attrs={'id': 'product-title'}),
-                                                                         soup.findAll('div', attrs={'class': 'value js-part-number'}),
-                                                                         soup.findAll('div', attrs={'class': 'ga-eec__variant'}),
-                                                                         soup.findAll('p', attrs={'class': 'autoship-pricing p'}),
-                                                                         soup.findAll('span', attrs={'class': 'ga-eec__price'}),
-                                                                         soup.select('div.ugc')):
-
-            brand = brand.text
-            product = ' '.join(product.h1.text.replace(brand, '').split()) + ' ' +package.text.split(',')[0]
+        for id, auto_ship, price in zip(soup.findAll('div', attrs={'class': 'value js-part-number'}),
+                                        soup.findAll('p', attrs={'class': 'autoship-pricing p'}),
+                                        soup.findAll('span', attrs={'class': 'ga-eec__price'})):
             chewy_id = ' '.join(id.span.text.split())
             p1 = auto_ship.text.index('(')
             auto_ship = ' '.join(auto_ship.text[:p1].split())
             regular_price = ' '.join(price.text.split())
-            rating = rating.picture.img['src'][-7:-4].replace('_', '.')
-            price_data.append((date,brand,product,chewy_id,auto_ship,regular_price,rating))
+            price_data.append((date,chewy_id,auto_ship,regular_price))
 
     # If a page has size variation selector button, open Selenium to simulate button click.
     else:
-        driver = webdriver.Chrome(executable_path=r'C:\Users\rhuang\Downloads\chromedriver')
+        driver = webdriver.Chrome(executable_path=r'C:\Users\Rick Huang\Downloads\chromedriver')
         # Getting all buttons' XPATHs.
         for b in btn_count[0]:
             btn_path = '//*[@id="variation-Size"]/div[2]/div[' + str(b) + ']/div/label'
@@ -75,28 +64,22 @@ for test_url in all_url:
             time.sleep(3)
             page_source = driver.page_source
             soup = BeautifulSoup(page_source, 'html.parser')
-            for brand, product, id, package, auto_ship, price, rating in zip(soup.findAll('span', attrs={'itemprop': 'brand'}),
-                                                                             soup.findAll('div', attrs={'id': 'product-title'}),
-                                                                             soup.findAll('div', attrs={'class': 'value js-part-number'}),
-                                                                             soup.findAll('div', attrs={'class': 'ga-eec__variant'}),
-                                                                             soup.findAll('p', attrs={'class': 'autoship-pricing p'}),
-                                                                             soup.findAll('span', attrs={'class': 'ga-eec__price'}),
-                                                                             soup.select('div.ugc')):
-                brand = brand.text
-                product = ' '.join(product.h1.text.replace(brand, '').split()) + ' ' + package.text.split(',')[0]
+            for id, auto_ship, price in zip(soup.findAll('div', attrs={'class': 'value js-part-number'}),
+                                            soup.findAll('p', attrs={'class': 'autoship-pricing p'}),
+                                            soup.findAll('span', attrs={'class': 'ga-eec__price'})):
                 chewy_id = ' '.join(id.span.text.split())
                 p1 = auto_ship.text.index('(')
                 auto_ship = ' '.join(auto_ship.text[:p1].split())
                 regular_price = ' '.join(price.text.split())
-                rating = rating.picture.img['src'][-7:-4].replace('_', '.')
                 # Write for loop values to price_data list.
-                price_data.append((date,brand,product,chewy_id,auto_ship,regular_price,rating))
+                price_data.append((date,chewy_id,auto_ship,regular_price))
         # Close Selenium when all pages with buttons are looped through.
         driver.quit()
 # Convert to Panda DF from price_data list
-chewy = pd.DataFrame(price_data, columns=['date','brand','products','id','auto_ship','regular_price','rating'])
+
+chewy = pd.DataFrame(price_data, columns=['date','id','auto_ship','regular_price'])
 
 # Export to CSV
-chewy.to_csv(r'C:\Users\rhuang\Desktop\chewy_price.csv', index=False, header=True)
+chewy.to_csv(r'C:\Users\Rick Huang\Desktop\chewy_price.csv', index=False, header=True)
 
 
